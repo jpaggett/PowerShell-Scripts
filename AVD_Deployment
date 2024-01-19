@@ -1,0 +1,56 @@
+#. This script deploys an Azure Virtual Desktop using PowerShell
+
+
+#Define the parameters for your host pool
+
+New-AzResourceGroup -Name VirtualDesktops -Location EastUs
+$parameters = @{
+    Name = 'VirtualDesktop'
+    ResourceGroupName = 'VirtualDesktops'
+    HostPoolType = 'Pooled'
+    LoadBalancerType = 'BreadthFirst'
+    PreferredAppGroupType = 'Desktop'
+    MaxSessionLimit = 50  
+    Location = 'EastUS'
+}
+
+#Create the Host Pool using the parameters
+New-AzWvdHostPool @parameters
+
+#Create Your Workspace
+New-AzWvdWorkspace -Name 'VirtualDesktop' -ResourceGroupName 'VirtualDesktops' -Location 'EastUS'
+
+#Create Application Group
+$parameters = @{
+    Name = 'VirtualDesktop'
+    ResourceGroupName = 'VirtualDesktops'
+    ApplicationGroupType = 'Desktop'
+    HostPoolArmPath = $hostPoolArmPath
+    Location = 'EastUS'
+}
+
+New-AzWvdApplicationGroup @parameters
+
+#Add Users to Application Group
+# Get the resource ID of the application group you want to add to the workspace
+$appGroupPath = (Get-AzWvdApplicationGroup -Name 'VirtualDesktop'-ResourceGroupName 'VirtualDesktops').Id
+
+# Add the application group to the workspace
+Update-AzWvdWorkspace -Name 'VirtualDesktop' -ResourceGroupName 'VirtualDesktops' -ApplicationGroupReference $appGroupPath
+
+#Assign users to Application Group
+$parameters = @{
+    UserPrincipalName = 'user@example.com'  # Use the actual user principal name
+    ResourceName = 'VirtualDesktop'
+    ResourceGroupName = 'VirtualDesktops'
+    RoleDefinitionName = 'Desktop Virtualization User'
+    ResourceType = 'Microsoft.DesktopVirtualization/applicationGroups'
+}
+
+# Get the ObjectId corresponding to the UserPrincipalName
+$parameters.ObjectId = (Get-AzADUser -UserPrincipalName $parameters.UserPrincipalName).Id
+
+# Assign the role
+New-AzRoleAssignment -ObjectId $parameters.ObjectId -RoleDefinitionName $parameters.RoleDefinitionName -ResourceGroupName $parameters.ResourceGroupName -ResourceName $parameters.ResourceName -ResourceType $parameters.ResourceType
+
+# From here, all you now have to do is add the Sessions Hosts to the Host pool in order to connect.
