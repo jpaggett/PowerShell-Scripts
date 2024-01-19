@@ -1,3 +1,14 @@
+<#
+.SYNOPSIS
+This PowerShell script creates an Azure VM, installs a web server, and enables backup protection.
+
+.DESCRIPTION
+This script automates the deployment of an Azure VM with IIS and sets up Azure Backup for the VM.
+
+.NOTES
+Prerequisite   : Azure PowerShell Module
+
+#>
 #Create VM
 
 New-AzResourceGroup -Name 'myResourceGroup' -Location 'EastUS'
